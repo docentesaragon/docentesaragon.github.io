@@ -1,1 +1,14 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.docentesaragon.twa",
+      "sha256_cert_fingerprints": [
+        "3F:9A:D1:BB:9E:A8:C5:10:00:C8:36:E7:AD:BB:F0:40:F6:70:1E:F8:B8:3D:35:A2:EC:76:64:97:82:69:20:DE",
+        "4F:73:D6:8F:17:48:5A:68:38:C0:09:82:87:3B:CD:F0:B9:E9:C2:7E:A3:06:31:80:9F:55:92:F8:62:BB:9E:56"
+      ]
+    }
+  }
+]
 
