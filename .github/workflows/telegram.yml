@@ -38,7 +38,7 @@ jobs:
       - name: Preparar el dibujo de la tarjeta
         run: |
           pip install playwright
-          python -m playwright install --with-deps chromium
+          python -m playwright install --with-deps chromium || python -m playwright install chromium
       - name: Telegram
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
