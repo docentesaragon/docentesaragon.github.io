@@ -1,7 +1,7 @@
 name: Publicar en Telegram (a mano)
 
 # Para lanzarlo: Actions → «Publicar en Telegram (a mano)» → Run workflow.
-#   simulacro: enseña en el resumen cómo quedarían los mensajes, sin publicar nada.
+#   simulacro: no publica nada; enseña el texto en el resumen y deja las imágenes en «Artifacts» → tarjetas (descargar y abrir).
 #   publicar:  publica las adjudicaciones que falten (o solo el acto que escribas, aunque sea antiguo).
 on:
   workflow_dispatch:
@@ -35,6 +35,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Preparar el dibujo de la tarjeta
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
       - name: Telegram
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -49,3 +53,11 @@ jobs:
           if [ -n "$ACTO" ]; then ARGS="$ARGS --acto $ACTO"; fi
           if [ "$MODO" != "publicar" ]; then ARGS="$ARGS --simulacro"; fi
           python pipeline/telegram_canal.py $ARGS
+      - name: Guardar las imágenes del simulacro
+        if: always() && github.event.inputs.modo != 'publicar'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarjetas
+          path: tarjetas_telegram/
+          if-no-files-found: ignore
+          retention-days: 7
