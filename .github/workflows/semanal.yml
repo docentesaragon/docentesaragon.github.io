@@ -60,3 +60,13 @@ jobs:
           EXTRA=""
           if [ "$ES_REINTENTO" = "si" ]; then EXTRA="--solo-novedades"; fi
           python pipeline/semanal.py --dias "$DIAS" --subir $EXTRA
+      - name: Publicar en el canal de Telegram
+        # Publica las adjudicaciones nuevas (de los últimos 4 días) que aún no estén en el canal. Si falla, el robot no se pone en rojo.
+        if: steps.puerta.outputs.seguir == 'si'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CANAL: ${{ secrets.TELEGRAM_CANAL }}
+        run: python pipeline/telegram_canal.py
