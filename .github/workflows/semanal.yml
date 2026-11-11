@@ -60,9 +60,25 @@ jobs:
           EXTRA=""
           if [ "$ES_REINTENTO" = "si" ]; then EXTRA="--solo-novedades"; fi
           python pipeline/semanal.py --dias "$DIAS" --subir $EXTRA
-      - name: Publicar en el canal de Telegram
-        # Publica las adjudicaciones nuevas (de los últimos 4 días) que aún no estén en el canal. Si falla, el robot no se pone en rojo.
+      - name: ¿Hay algo nuevo para Telegram?
+        id: tg
         if: steps.puerta.outputs.seguir == 'si'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CANAL: ${{ secrets.TELEGRAM_CANAL }}
+        run: python pipeline/telegram_canal.py --comprobar
+      - name: Preparar el dibujo de la tarjeta (solo si hay algo que publicar)
+        if: steps.tg.outputs.pendientes == 'si'
+        continue-on-error: true
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Publicar en el canal de Telegram
+        # Publica como imagen (igual que la web) las adjudicaciones nuevas de los últimos 4 días. Si falla, el robot no se pone en rojo.
+        if: steps.tg.outputs.pendientes == 'si'
         continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
