@@ -46,10 +46,21 @@ jobs:
           fi
       - name: Instalar herramientas
         if: steps.puerta.outputs.seguir == 'si'
+        timeout-minutes: 12
         run: |
-          sudo apt-get update
-          sudo apt-get install -y poppler-utils
+          # pdftotext (poppler). Si los servidores de Ubuntu no responden (fallo de GitHub), plan B: conda-forge (igual que DocentCV).
           pip install pypdf cryptography
+          if command -v pdftotext >/dev/null; then echo "Ya estaba instalado"; exit 0; fi
+          if timeout 150 sudo apt-get update -qq -o Acquire::Retries=1 -o Acquire::http::Timeout=15 \
+             && timeout 150 sudo apt-get install -y -qq -o Acquire::Retries=1 -o Acquire::http::Timeout=15 poppler-utils; then
+            echo "Instalado desde Ubuntu"; exit 0
+          fi
+          echo "::warning::Los servidores de Ubuntu no responden; instalo pdftotext desde conda-forge (plan B)"
+          cd "$HOME"
+          curl -fsSL --retry 5 --retry-delay 5 https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj bin/micromamba
+          ./bin/micromamba create -y -q -r "$HOME/mamba" -p "$HOME/herr" -c conda-forge poppler
+          echo "$HOME/herr/bin" >> "$GITHUB_PATH"
+          "$HOME/herr/bin/pdftotext" -v 2>&1 | head -1
       - name: Bajar, leer, subir a Supabase y avisar a la app
         if: steps.puerta.outputs.seguir == 'si'
         env:
@@ -75,7 +86,7 @@ jobs:
         continue-on-error: true
         run: |
           pip install playwright
-          python -m playwright install --with-deps chromium
+          python -m playwright install --with-deps chromium || python -m playwright install chromium
       - name: Publicar en el canal de Telegram
         # Publica como imagen (igual que la web) las adjudicaciones nuevas de los últimos 4 días. Si falla, el robot no se pone en rojo.
         if: steps.tg.outputs.pendientes == 'si'
