@@ -1,0 +1,51 @@
+name: Publicar en Telegram (a mano)
+
+# Para lanzarlo: Actions → «Publicar en Telegram (a mano)» → Run workflow.
+#   simulacro: enseña en el resumen cómo quedarían los mensajes, sin publicar nada.
+#   publicar:  publica las adjudicaciones que falten (o solo el acto que escribas, aunque sea antiguo).
+on:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "simulacro (solo ver) o publicar"
+        type: choice
+        options: [simulacro, publicar]
+        default: simulacro
+      acto:
+        description: "Opcional: un acto concreto, p. ej. SEC-2026-36 (vacío = las adjudicaciones recientes que falten)"
+        required: false
+        default: ""
+      dias:
+        description: "Antigüedad máxima en días cuando no escribes acto"
+        default: "4"
+
+concurrency:
+  group: robot-semanal
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  telegram:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Telegram
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CANAL: ${{ secrets.TELEGRAM_CANAL }}
+          MODO: ${{ github.event.inputs.modo }}
+          ACTO: ${{ github.event.inputs.acto }}
+          DIAS: ${{ github.event.inputs.dias }}
+        run: |
+          ARGS="--dias ${DIAS:-4}"
+          if [ -n "$ACTO" ]; then ARGS="$ARGS --acto $ACTO"; fi
+          if [ "$MODO" != "publicar" ]; then ARGS="$ARGS --simulacro"; fi
+          python pipeline/telegram_canal.py $ARGS
