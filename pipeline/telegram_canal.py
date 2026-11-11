@@ -215,8 +215,7 @@ def leyenda(acto):
     return "\n".join([
         f"📢 <b>{e(titulo(acto))} · {e(CUERPO_TARJETA.get(cuerpo, cuerpo.capitalize()))}</b>",
         "",
-        f"👀 ¿Hasta dónde llegó tu lista? 👉 {WEB}/#/semana",
-        f"📄 Fuente oficial: {FUENTE.get(cuerpo, 'https://educa.aragon.es')}",
+        f'👀 ¿Hasta dónde llegó tu lista? 👉 <a href="{WEB}/#/semana">Pincha aquí</a>',
         "",
         "<i>Docentes Aragón es un proyecto independiente y no oficial. Manda siempre el documento oficial.</i>"])
 
