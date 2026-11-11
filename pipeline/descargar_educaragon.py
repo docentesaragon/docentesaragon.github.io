@@ -222,7 +222,8 @@ class Robot:
     def pedir(self, url):
         """GET con reintentos. Devuelve (status, bytes, fecha Last-Modified o None).
         status 0 = fallo de red."""
-        for intento in range(3):
+        esperas = [5, 15, 30, 60]          # Educaragón a veces corta la conexión unos minutos: se insiste con paciencia
+        for intento in range(len(esperas) + 1):
             time.sleep(self.pausa)
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
@@ -231,13 +232,15 @@ class Robot:
             except urllib.error.HTTPError as e:
                 if e.code in (404, 410):
                     return 404, b"", None
-                if e.code in (429, 500, 502, 503, 504):
-                    time.sleep(2 * (intento + 1))
+                if e.code in (429, 500, 502, 503, 504) and intento < len(esperas):
+                    time.sleep(esperas[intento])
                     continue
                 return e.code, b"", None
             except Exception as e:
                 self.ultimo_error = f"{type(e).__name__}: {e}"
-                time.sleep(2 * (intento + 1))
+                if intento < len(esperas):
+                    print(f"  Educaragón no responde ({type(e).__name__}); reintento en {esperas[intento]} s…", flush=True)
+                    time.sleep(esperas[intento])
         with self.lock:
             self.sin_red += 1
         return 0, b"", None
@@ -330,6 +333,8 @@ class Robot:
         tareas = []
         for cuerpo, rutas in PAGINAS.items():
             for ruta in rutas:
+                if self.sin_red >= 2 and not tareas:
+                    break          # dos páginas seguidas sin conexión: no se insiste con el resto
                 for url, titulo in self.enlaces_pagina(ruta):
                     tareas.append((cuerpo, url, titulo))
         if not tareas and self.sin_red:

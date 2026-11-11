@@ -114,6 +114,8 @@ def main():
     n = sum(f.lower().endswith(".pdf") for _, _, fs in os.walk(pdfs) for f in fs) if os.path.isdir(pdfs) else 0
     print(f"PDF disponibles: {n}")
     if n == 0:
+        resumen(f"⚠️ {hora_aragon()} (hora de Aragón) · Educaragón no ha respondido (o ha cambiado sus páginas): no se ha podido bajar ningún PDF. "
+                "No se ha tocado nada de la web. Suele ser un corte temporal de su servidor: la siguiente pasada lo vuelve a intentar.")
         sys.exit("No se ha descargado ningun PDF (Educaragon no responde o ha cambiado las paginas). Nada que procesar.")
 
     personas = os.path.join(tmp, "privado", "personas.json")     # NUNCA dentro de web/: lleva nombres
