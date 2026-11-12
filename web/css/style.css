@@ -58,10 +58,27 @@ button, select, input { font: inherit; color: inherit; }
 select, input[type="text"], input[type="search"], input[type="number"], input[type="date"] {
   background: var(--panel); border: 1px solid var(--linea); border-radius: var(--radio); padding: .45rem .6rem; min-height: 40px; max-width: 100%;
 }
-.pestanas { max-width: 1120px; margin: 0 auto; padding: 0 8px; display: flex; overflow-x: auto; scrollbar-width: none; }
-.pestanas a { padding: .7rem 1rem; text-decoration: none; color: var(--tinta-2); font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; }
+.pestanas { max-width: 1120px; margin: 0 auto; padding: 0 8px; display: flex; }
+.pestanas a { display: flex; align-items: center; gap: .45rem; padding: .7rem 1rem; text-decoration: none; color: var(--tinta-2); font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; }
+.pestanas .ico { width: 19px; height: 19px; flex: none; }
+.pestanas .et-corto { display: none; }
 .pestanas a:hover { color: var(--tinta); }
-.pestanas a[aria-current="page"] { color: var(--tinta); border-bottom-color: var(--rojo); }
+.pestanas a[aria-current="page"] { color: var(--rojo); border-bottom-color: var(--rojo); }
+/* v3.6: en el móvil, las 5 secciones caben siempre (icono + nombre corto), sin deslizar; la cabecera queda fija arriba */
+@media (max-width: 640px) {
+  .cabecera { border-top-width: 4px; }
+  .cabecera-in { padding: .45rem 12px .2rem; }
+  .logo { width: 30px; height: 30px; }
+  .marca-nombre { font-size: 1.3rem; }
+  .pestanas { display: grid; grid-template-columns: repeat(5, 1fr); padding: 0; }
+  .pestanas a { flex-direction: column; gap: .15rem; padding: .35rem 0 .3rem; font-size: .7rem; letter-spacing: -.015em; line-height: 1.1; min-width: 0; text-align: center; }
+  .pestanas .ico { width: 23px; height: 23px; }
+  .pestanas .et { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .pestanas .et-largo { display: none; }
+  .pestanas .et-corto { display: inline; }
+  .pestanas a[aria-current="page"] { background: var(--rojo-fondo, rgba(181, 18, 43, .08)); }
+}
+@media (max-width: 345px) { .pestanas a { font-size: .62rem; } }
 
 /* ---------- estructura ---------- */
 main { max-width: 1120px; margin: 0 auto; padding: 1.25rem 16px 2rem; outline: none; }
