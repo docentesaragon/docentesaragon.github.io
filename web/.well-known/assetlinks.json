@@ -1,14 +1,19 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "io.github.docentesaragon.twa",
       "sha256_cert_fingerprints": [
         "3F:9A:D1:BB:9E:A8:C5:10:00:C8:36:E7:AD:BB:F0:40:F6:70:1E:F8:B8:3D:35:A2:EC:76:64:97:82:69:20:DE",
-        "4F:73:D6:8F:17:48:5A:68:38:C0:09:82:87:3B:CD:F0:B9:E9:C2:7E:A3:06:31:80:9F:55:92:F8:62:BB:9E:56"
+        "4F:73:D6:8F:17:48:5A:68:38:C0:09:82:87:3B:CD:F0:B9:E9:C2:7E:A3:06:31:80:9F:55:92:F8:62:BB:9E:56",
+        "A2:D7:B5:6B:BE:3C:CC:F8:BB:17:F3:04:A9:ED:84:09:DF:AA:04:B5:7C:2C:6E:12:92:62:A9:81:28:D9:56:47",
+        "00:FE:A6:15:F1:78:5C:D4:D4:AE:1D:3D:C5:8F:EA:EC:3B:F1:3D:7E:95:11:DB:18:19:5B:48:E5:35:64:94:D2",
+        "7C:05:E3:70:FD:6B:90:7E:F2:AA:F4:71:AB:5E:EF:3B:44:84:73:AD:5F:0E:75:8A:B0:CC:6E:DD:60:D3:B5:6A"
       ]
     }
   }
 ]
-
