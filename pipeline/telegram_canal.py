@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publica en el canal de Telegram de Docentes Aragón un resumen de cada adjudicación semanal nueva.
+"""Publica en el canal de Telegram de Docentes Aragón cada oferta y cada adjudicación semanal nuevas.
 
 Lo lanza el robot semanal después de subir los datos (y se puede lanzar a mano con el flujo «Publicar en Telegram»).
 Sin nombres ni DNI: solo cifras públicas del acto, las especialidades con más adjudicaciones, el enlace a la web,
@@ -77,6 +77,14 @@ class Supabase:
     def adjudicadas(self, acto):
         return self.get("vacantes", f"select=cuerpo_cod,esp&acto=eq.{urllib.parse.quote(acto)}&estado=eq.adjudicada")
 
+    def actos_ofertados(self, desde, acto=None):
+        filtro = f"acto=eq.{urllib.parse.quote(acto)}" if acto else f"fecha_oferta=gte.{desde}"
+        return self.get("actos", f"select=*&tiene_adjudicadas=is.false&n_ofertadas=gt.0&{filtro}&order=fecha_oferta.asc,acto.asc")
+
+    def ofertadas(self, acto):
+        filas = self.get("vacantes", f"select=cuerpo_cod,esp,singular&acto=eq.{urllib.parse.quote(acto)}")
+        return [v for v in filas if not v.get("singular")]
+
     def especialidades(self):
         return self.get("especialidades", "select=cuerpo_cod,cod,nombre")
 
@@ -110,6 +118,15 @@ class Local:
         curso = next(a["curso"] for a in self._j("actos") if a["acto"] == acto)
         return [v for v in self._j("vacantes_" + curso) if v["acto"] == acto and v["estado"] == "adjudicada"]
 
+    def actos_ofertados(self, desde, acto=None):
+        xs = [a for a in self._j("actos") if not a.get("tiene_adjudicadas") and (a.get("n_ofertadas") or 0) > 0
+              and ((a["acto"] == acto) if acto else (a.get("fecha_oferta") or "") >= desde)]
+        return sorted(xs, key=lambda a: (a.get("fecha_oferta") or "", a["acto"]))
+
+    def ofertadas(self, acto):
+        curso = next(a["curso"] for a in self._j("actos") if a["acto"] == acto)
+        return [v for v in self._j("vacantes_" + curso) if v["acto"] == acto and not v.get("singular")]
+
     def especialidades(self):
         return self._j("especialidades")
 
@@ -135,6 +152,29 @@ def bonito(nombre):
     """BIOLOGIA Y GEOLOGIA → Biología y geología (pone las tildes que faltan y deja solo la primera en mayúscula)."""
     palabras = [TILDES.get(w.rstrip(":,.;)"), w.rstrip(":,.;)")) + w[len(w.rstrip(":,.;)")):] for w in (nombre or "").strip().split()]
     return " ".join(palabras).capitalize()
+
+
+def es_oferta(acto):
+    return acto.get("_tipo") == "oferta"
+
+
+def clave(acto):
+    """Lo que se guarda en telegram_publicados: el acto (adjudicación) u «OF|acto» (oferta)."""
+    return ("OF|" if es_oferta(acto) else "") + acto["acto"]
+
+
+def mensaje_oferta(acto, filas, nombres):
+    e = html.escape
+    cuerpo = acto.get("cuerpo") or ""
+    n = acto.get("n_ofertadas") or len(filas)
+    lineas = [f"📋 <b>{e(titulo(acto))} · {e(CUERPO_TARJETA.get(cuerpo, cuerpo.capitalize()))}</b>", "",
+              f"Se {'ofrece' if n == 1 else 'ofrecen'} <b>{n}</b> {'vacante ordinaria' if n == 1 else 'vacantes ordinarias'}."]
+    top = top_especialidades(cuerpo, filas, nombres)
+    if top:
+        lineas += ["", "<b>Especialidades con más vacantes</b>"] + [f"• {e(nom)}: {k}" for nom, k in top]
+    lineas += ["", f'👀 ¿Qué plazas salen y dónde? 👉 <a href="{WEB}/#/semana">Pincha aquí</a>', "",
+               "<i>Docentes Aragón es un proyecto independiente y no oficial. Manda siempre el documento oficial.</i>"]
+    return "\n".join(lineas)
 
 
 def fecha_larga(iso):
@@ -185,12 +225,16 @@ def top_especialidades(cuerpo, adjudicadas, nombres):
 
 
 def titulo(acto):
-    d = dt.date.fromisoformat(acto["fecha_adjudicacion"])
-    return f"Adjudicación del {DIAS[d.weekday()]} {d.day} de {MESES[d.month - 1]}"
+    d = dt.date.fromisoformat(acto["fecha_oferta"] if es_oferta(acto) else acto["fecha_adjudicacion"])
+    return f"{'Oferta' if es_oferta(acto) else 'Adjudicación'} del {DIAS[d.weekday()]} {d.day} de {MESES[d.month - 1]}"
 
 
 def frase(acto, adjudicadas, marca=lambda n: str(n)):
     """La misma frase que la web: «Se ofrecieron 44 vacantes ordinarias y se adjudicaron 43, más 9 singularizadas. Quedó 1 sin adjudicar.»"""
+    if es_oferta(acto):
+        n = acto.get("n_ofertadas") or len(adjudicadas)
+        return (f"Se {'ofrece' if n == 1 else 'ofrecen'} {marca(n)} {'vacante ordinaria' if n == 1 else 'vacantes ordinarias'}. "
+                "La adjudicación aún no está publicada.")
     total = acto.get("n_adjudicadas") or len(adjudicadas)
     sing = acto.get("n_singulares_adjudicadas") or 0
     sin = acto.get("n_no_adjudicadas") or 0
@@ -212,10 +256,11 @@ def leyenda(acto):
     """Texto que va debajo de la imagen (máx. 1024 caracteres)."""
     e = html.escape
     cuerpo = acto.get("cuerpo") or ""
+    pregunta = "¿Qué plazas salen y dónde?" if es_oferta(acto) else "¿Hasta dónde llegó tu lista?"
     return "\n".join([
-        f"📢 <b>{e(titulo(acto))} · {e(CUERPO_TARJETA.get(cuerpo, cuerpo.capitalize()))}</b>",
+        f"{'📋' if es_oferta(acto) else '📢'} <b>{e(titulo(acto))} · {e(CUERPO_TARJETA.get(cuerpo, cuerpo.capitalize()))}</b>",
         "",
-        f'👀 ¿Hasta dónde llegó tu lista? 👉 <a href="{WEB}/#/semana">Pincha aquí</a>',
+        f'👀 {pregunta} 👉 <a href="{WEB}/#/semana">Pincha aquí</a>',
         "",
         "<i>Docentes Aragón es un proyecto independiente y no oficial. Manda siempre el documento oficial.</i>"])
 
@@ -234,7 +279,8 @@ def tarjeta_html(acto, adjudicadas, nombres):
             logo = '<img src="data:image/png;base64,' + base64.b64encode(f.read()).decode() + '" alt="">'
     except OSError:
         logo = ""
-    caja = (f'<div class="tarj"><div class="tit">Especialidades con más plazas</div>{filas}</div>' if top else "")
+    rotulo = "Especialidades con más vacantes ofertadas" if es_oferta(acto) else "Especialidades con más plazas adjudicadas"
+    caja = (f'<div class="tarj"><div class="tit">{rotulo}</div>{filas}</div>' if top else "")
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -255,7 +301,7 @@ h1{{font-size:56px;margin:22px 56px 6px;line-height:1.08;font-weight:800}}
 .pie{{font-size:24px;color:#5b6773;margin:auto 56px 34px}}
 </style></head><body><div class="top"></div>
 <div class="cab">{logo}<b>Docentes Aragón</b></div>
-<div class="cuerpo">{e(CUERPO_TARJETA.get(cuerpo, cuerpo.capitalize()))}</div>
+<div class="cuerpo">{e(CUERPO_TARJETA.get(cuerpo, cuerpo.capitalize()))} · {"Oferta" if es_oferta(acto) else "Adjudicación"}</div>
 <h1>{e(titulo(acto))}</h1>
 <p class="frase">{frase(acto, adjudicadas, lambda n: f"<b>{n}</b>")}</p>
 {caja}
@@ -339,7 +385,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--simulacro", action="store_true", help="enseña los mensajes sin publicar ni guardar nada")
     ap.add_argument("--acto", help="publica solo este acto (aunque sea antiguo)")
-    ap.add_argument("--dias", type=int, default=4, help="antigüedad máxima de la adjudicación (def. 4 días)")
+    ap.add_argument("--dias", type=int, default=4, help="antigüedad máxima de la oferta o adjudicación (def. 4 días)")
+    ap.add_argument("--tipo", choices=["todo", "ofertas", "adjudicaciones"], default="todo")
     ap.add_argument("--datos", help="carpeta con los JSON de web/data (pruebas, sin Supabase)")
     ap.add_argument("--hoy", help="fecha de hoy AAAA-MM-DD (pruebas)")
     ap.add_argument("--comprobar", action="store_true", help="solo dice si hay algo pendiente (pendientes=si|no en GITHUB_OUTPUT)")
@@ -358,12 +405,17 @@ def main(argv=None):
     fuente = Local(a.datos) if a.datos else Supabase()
     hoy = dt.date.fromisoformat(a.hoy) if a.hoy else dt.date.today()
     desde = (hoy - dt.timedelta(days=a.dias)).isoformat()
-    actos = [x for x in fuente.actos_adjudicados(desde, a.acto) if (x.get("n_adjudicadas") or 0) > 0]
+    actos = []
+    if a.tipo != "adjudicaciones":                     # ofertas cuya adjudicación aún no ha salido
+        actos += [dict(x, _tipo="oferta") for x in fuente.actos_ofertados(desde, a.acto)]
+    if a.tipo != "ofertas":
+        actos += [x for x in fuente.actos_adjudicados(desde, a.acto) if (x.get("n_adjudicadas") or 0) > 0]
+    actos.sort(key=lambda x: (x["fecha_oferta"] if es_oferta(x) else x.get("fecha_adjudicacion") or "", x["acto"]))
     if a.acto and not actos:
-        resumen(f"⚠️ Telegram: no encuentro el acto {a.acto} con adjudicaciones.")
+        resumen(f"⚠️ Telegram: no encuentro el acto {a.acto} con oferta o adjudicaciones.")
         return 1
-    hechos = fuente.publicados([x["acto"] for x in actos])
-    pendientes = [x for x in actos if x["acto"] not in hechos]
+    hechos = fuente.publicados([clave(x) for x in actos])
+    pendientes = [x for x in actos if clave(x) not in hechos]
     if a.comprobar:
         hay = "si" if pendientes else "no"
         print("pendientes=" + hay)
@@ -377,27 +429,27 @@ def main(argv=None):
     nombres = {(e["cuerpo_cod"], e["cod"]): e["nombre"] for e in fuente.especialidades()}
     errores = 0
     for x in pendientes:
-        adj = fuente.adjudicadas(x["acto"])
+        adj = fuente.ofertadas(x["acto"]) if es_oferta(x) else fuente.adjudicadas(x["acto"])
         png = None if a.sin_imagen else tarjeta_png(tarjeta_html(x, adj, nombres))
-        texto = leyenda(x) if png else mensaje(x, adj, nombres)
+        texto = leyenda(x) if png else (mensaje_oferta if es_oferta(x) else mensaje)(x, adj, nombres)
         if a.simulacro:
             nota = ""
             if png:
                 os.makedirs(a.carpeta, exist_ok=True)
-                ruta = os.path.join(a.carpeta, f"{x['acto']}.png")
+                ruta = os.path.join(a.carpeta, f"{clave(x).replace('|', '-')}.png")
                 with open(ruta, "wb") as f:
                     f.write(png)
                 nota = f"Imagen: {ruta} (en GitHub, descárgala en «Artifacts» → tarjetas).\n\n"
-            resumen(f"🧪 Simulacro (no se publica) · {x['acto']}:\n\n{nota}```\n{texto}\n```")
+            resumen(f"🧪 Simulacro (no se publica) · {clave(x)}:\n\n{nota}```\n{texto}\n```")
             continue
         try:
             mid = enviar(token, canal, texto, png)
         except Exception as err:          # un fallo no debe impedir los demás ni parar el robot
             errores += 1
-            resumen(f"❌ Telegram · {x['acto']}: {err}")
+            resumen(f"❌ Telegram · {clave(x)}: {err}")
             continue
-        fuente.guardar(x["acto"], mid)
-        resumen(f"📣 Telegram: publicado {x['acto']} en {canal}.")
+        fuente.guardar(clave(x), mid)
+        resumen(f"📣 Telegram: publicado {clave(x)} en {canal}.")
     return 1 if errores else 0
 
 
