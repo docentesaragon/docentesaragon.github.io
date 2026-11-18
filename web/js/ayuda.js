@@ -42,7 +42,7 @@ function preguntas() {
       ["precio", "¿Qué es gratis y qué es de pago?",
         [h("p", null, "Semana, Histórico, Vacantes y Mapa son gratis y no piden cuenta. Mi seguimiento (tus listas, probabilidad, destinos, favoritos y avisos) es tu área personal: tienes ", h("strong", null, `${dias} días de prueba gratis`), ` al entrar la primera vez y después el pase del curso cuesta ${precio} (pago único, hasta el ${hasta}; no se renueva solo).`)]],
       ["invitar", "¿Cómo consigo la app gratis?",
-        [h("p", null, "Comparte tu código de invitación (está en Mi seguimiento). Si 3 compañeros crean su cuenta con tu código y activan su pase del curso, el tuyo es gratis hasta el final del curso. Cada persona puede usar un solo código y solo durante sus primeros 30 días.")]],
+        [h("p", null, "Comparte tu código de invitación (en Mi seguimiento, botón «Invitar y app gratis»). Si 3 compañeros crean su cuenta con tu código y activan su pase del curso, el tuyo es gratis hasta el final del curso. Cada persona puede usar un solo código y solo durante sus primeros 30 días.")]],
       ["cuenta", "¿Es la misma cuenta que en DocentsCV?",
         [h("p", null, "Sí: se entra con el mismo correo y la misma contraseña. Los datos de cada web (seguimiento y pase) se guardan por separado.")]],
     ]],

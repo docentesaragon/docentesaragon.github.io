@@ -6,16 +6,16 @@ import { semana } from "./semana.js";
 import { historico } from "./historico.js";
 import { vacantes } from "./vacantes.js";
 import { mapa } from "./mapa.js";
-import { yo } from "./yo.js";
+import { yo, invitar } from "./yo.js";
 import { ajustes } from "./ajustes.js";
 import { admin } from "./admin.js";
 import { ayuda } from "./ayuda.js";
 import { iniciarCuenta, CUENTA, salirVerComo } from "./cuenta.js";
 import { registrarSW, resincronizarAvisos } from "./avisos.js";
 
-const VISTAS = { semana, historico, vacantes, mapa, yo, ajustes, admin, ayuda };
+const VISTAS = { semana, historico, vacantes, mapa, yo, ajustes, admin, ayuda, invitar };
 const NECESITA_VACANTES = new Set(["vacantes", "mapa", "yo"]);
-const PESTANA = { ajustes: "yo", admin: "yo" };      // estas dos cuelgan de «Mi seguimiento»
+const PESTANA = { ajustes: "yo", admin: "yo", invitar: "yo" };      // estas cuelgan de «Mi seguimiento»
 const raiz = document.getElementById("vista");
 
 /** Barra de arriba mientras la administradora mira la web como otra persona (solo lectura). */

@@ -81,7 +81,6 @@ function seguimiento(raiz) {
     cabecera,
     CUENTA.activa ? [mensajeCuenta(), barraCuenta(raiz), avisoDeAcceso(raiz)] : null,
     CUENTA.activa && !ro ? primerosPasos(raiz) : null,
-    CUENTA.activa && !ro ? tarjetaInvitar() : null,
     lugarActual && !ro ? bloqueLugar(raiz) : null,
     CUENTA.activa && !ro ? bloqueBuscar(raiz) : null,
     ro || !conManual ? null : manual,
@@ -89,6 +88,36 @@ function seguimiento(raiz) {
     CUENTA.activa && !ro ? avisarAdmin() : null,
     CUENTA.activa ? h("p", { class: "tenue peq", id: "sync-estado", role: "status" }, TEXTO_SYNC[CUENTA.sync] || "") : borrado(raiz));
   if (CUENTA.activa && !ro) buscarSola(raiz);
+}
+
+/** Botón «Invitar y app gratis» de la cabecera de Mi seguimiento: abre la página de invitar. No sale a quien ya pagó (no tendría premio). */
+function botonInvitar() {
+  const tipo = CUENTA.pase?.tipo;
+  if (tipo === "pago_unico" || tipo === "suscripcion") return null;
+  return h("a", { class: "boton boton-invitar", id: "ir-invitar", href: "#/invitar" }, "🎁 Invitar y app gratis");
+}
+
+/** Página «Invita a tus compañeros y consigue la app gratis» (#/invitar): la tarjeta con el código y los botones, y cómo funciona. */
+export function invitar(raiz) {
+  const volver = h("p", { class: "volver" }, h("a", { href: "#/yo", id: "invitar-volver" }, "← Volver a Mi seguimiento"));
+  if (!CUENTA.activa) {
+    llenar(raiz, volver, h("div", { class: "cabecera-vista" }, h("h2", null, "Invita y consigue la app gratis"),
+      h("p", { class: "tenue", id: "invitar-sin-cuenta" }, "Para tener tu código de invitación, entra en Mi seguimiento con tu cuenta.")));
+    return;
+  }
+  const tipo = CUENTA.pase?.tipo;
+  const pagado = tipo === "pago_unico" || tipo === "suscripcion";
+  llenar(raiz, volver,
+    h("div", { class: "cabecera-vista" }, h("h2", { id: "invitar-h" }, "Invita y consigue la app gratis")),
+    pagado ? h("p", { class: "tenue", id: "invitar-pagado" }, "Ya tienes tu pase de este curso, así que invitar no te da nada más. Aun así, gracias por recomendar la app.") : tarjetaInvitar(),
+    h("div", { class: "bloque", id: "invitar-como" },
+      h("h3", null, "Cómo funciona"),
+      h("ol", { class: "pasos-invitar" },
+        h("li", null, "Comparte tu código con tus compañeros por WhatsApp, Telegram o como quieras."),
+        h("li", null, "Cada uno crea su cuenta con tu código y activa su pase del curso."),
+        h("li", null, "Cuando 3 lo hayan hecho, tu curso es gratis hasta el 30 de junio.")),
+      h("p", { class: "tenue peq" }, "Cada persona puede usar un solo código y solo durante sus primeros 30 días. ",
+        h("a", { href: "#/ayuda", id: "invitar-ayuda" }, "Más preguntas en Ayuda"), ".")));
 }
 
 function botonPaddoc() {
@@ -121,7 +150,7 @@ function cabeceraSaludo(ro) {
       h("div", { class: "etiquetas", id: "mis-especialidades" }, esps.length
         ? esps.map((l) => h("span", { class: "chip oro", "data-esp": `${l.cuerpo_cod}|${l.esp}`, title: bonito(nombreCuerpo(l.cuerpo_cod)) }, `${l.esp}: ${nombreEspBonito(l.cuerpo_cod, l.esp)}`))
         : h("span", { class: "tenue peq", id: "sin-especialidades" }, sinEsp))),
-    botonPaddoc());
+    h("div", { class: "saludo-botones" }, botonPaddoc(), ro ? null : botonInvitar()));
 }
 
 /** Al final de Mi seguimiento: el nombre y las listas no se tocan a mano; si algo está mal, se avisa a la administración. */

@@ -377,6 +377,15 @@ a.boton.solo-admin { color: var(--rojo); }
 .saludo .chip { white-space: normal; }
 .saludo .boton-paddoc { margin-left: auto; }
 @media (max-width: 560px) { .saludo .boton-paddoc { margin-left: 0; } }
+/* v3.8: botones de la cabecera de Mi seguimiento (PADDOC e «Invitar y app gratis») y página #/invitar */
+.saludo-botones { margin-left: auto; display: flex; flex-direction: column; gap: .5rem; align-items: stretch; }
+.saludo-botones .boton-paddoc { margin-left: 0; justify-content: center; }
+.boton-invitar { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; background: var(--panel); color: var(--rojo); border: 2px solid var(--rojo); }
+.boton-invitar:hover { background: var(--rojo); color: var(--panel); }
+@media (max-width: 560px) { .saludo-botones { margin-left: 0; flex: 1 1 100%; } }
+.volver { margin: 0 0 .75rem; }
+.volver a { color: var(--rojo); text-decoration: none; font-weight: 600; }
+.pasos-invitar { padding-left: 1.3rem; margin: .4rem 0 .8rem; line-height: 1.6; }
 
 .avisar-admin { margin: 1rem 0 .5rem; max-width: none; }
 
